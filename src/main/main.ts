@@ -8,7 +8,13 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import { BrowserWindow, app, shell } from 'electron';
+import {
+  BrowserWindow,
+  MessageChannelMain,
+  app,
+  shell,
+  utilityProcess,
+} from 'electron';
 import log from 'electron-log';
 import { autoUpdater } from 'electron-updater';
 import path from 'path';
@@ -51,7 +57,6 @@ const createWindow = async () => {
     height: 728,
     icon: getAssetPath('icon.png'),
     autoHideMenuBar: true,
-    frame: false,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -110,3 +115,14 @@ app
     });
   })
   .catch(console.log);
+
+/**
+ * Launch utility process to check state
+ */
+const { port1, port2 } = new MessageChannelMain();
+const utility_checkState = utilityProcess.fork(
+  path.join(__dirname, '..', 'workers', 'capture-and-diff', 'dist', 'index.js'),
+);
+utility_checkState.stdout?.on('data', (data) => {
+  console.log(`Received chunk ${data}`);
+});
